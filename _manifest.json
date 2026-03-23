@@ -1,7 +1,7 @@
 {
   "manifest_version": 1,
   "name": "提示词注入防护插件",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "防御提示词注入攻击，支持规则检测和 LLM 检测",
   "author": {
     "name": "heitiehu-beep",
