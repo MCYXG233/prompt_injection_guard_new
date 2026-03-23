@@ -1,4 +1,4 @@
-# prompt_injection_guard v1.0.0
+# prompt_injection_guard v1.0.1
 
 防御提示词注入攻击的 MaiBot 安全插件。
 
@@ -138,6 +138,8 @@ main_model_name = "replyer"
 
 3. **上下文长度**：默认跟随主程序的 `chat.max_context_size` 设置
 
+## 1.0.1更新：
+修复 warn_context 模式下注入检测仅在 bot 回复时触发的问题，现在每条消息到达时即执行检测并缓存结果
 
 ## 许可证
 
