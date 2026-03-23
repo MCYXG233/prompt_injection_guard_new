@@ -118,7 +118,7 @@ class InjectionDeleteHandler(BaseEventHandler):
     ) -> Tuple[bool, bool, Optional[str], Optional[CustomEventHandlerResult], Optional[MaiMessages]]:
 
         action_type = self.get_config("action.type", "warn_context")
-        if action_type not in ("delete", "detect_only"):
+        if action_type not in ("delete", "detect_only", "warn_context"):
             return True, True, None, None, None
 
         if not message or not message.plain_text:
@@ -145,6 +145,28 @@ class InjectionDeleteHandler(BaseEventHandler):
                 "category": category,
                 "hit_count": hit_count,
             }])
+
+            if action_type == "warn_context":
+                # 预热缓存：将规则命中结果写入 _detection_cache
+                # 这样即使 bot 不回复，检测也已在消息接收时完成
+                # InjectionWarnHandler 在 POST_LLM 时直接读取缓存，不再重复检测
+                stream_id = message.stream_id
+                if stream_id and msg_id:
+                    global _detection_cache
+                    if stream_id not in _detection_cache:
+                        _detection_cache[stream_id] = {"checked_msg_ids": set(), "confirmed": {}}
+                    nickname = message.message_base_info.get("user_nickname", "") or str(user_id)
+                    _detection_cache[stream_id]["confirmed"][str(msg_id)] = {
+                        "msg_id": str(msg_id),
+                        "user": nickname,
+                        "user_id": str(user_id),
+                        "text": message.plain_text,
+                        "category": category,
+                        "hit_count": hit_count,
+                    }
+                    # 同时标记为已检测，防止 InjectionWarnHandler 重复做规则检测
+                    _detection_cache[stream_id]["checked_msg_ids"].add(str(msg_id))
+                return True, True, None, None, None  # warn_context 不拦截消息
 
             if action_type == "delete":
                 try:
