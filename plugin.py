@@ -185,7 +185,7 @@ class PromptInjectionGuardPlugin(MaiBotPlugin):
         # 查找管理员私聊会话
         admin_stream = None
         try:
-            streams = await self.ctx.chat.get_streams()
+            streams = await self.ctx.chat.get_all_streams()
             for stream in streams:
                 if not stream.get("group_info") and str(stream.get("user_info", {}).get("user_id", "")) == str(admin_qq):
                     admin_stream = stream
@@ -335,8 +335,8 @@ class PromptInjectionGuardPlugin(MaiBotPlugin):
             context_size = detection_config.get("custom_check_size", 30)
 
         # 获取最近消息
-        recent_messages = await self.ctx.message.get_recent_messages(
-            chat_id=stream_id,
+        recent_messages = await self.ctx.message.get_recent(
+            stream_id=stream_id,
             limit=context_size,
         )
 
