@@ -1,14 +1,16 @@
 """
 Prompt Injection Detector
+
+基于 heitiehu-beep 的原项目 (https://github.com/heitiehu-beep/prompt_injection_guard)
+适配新版 MaiBot 插件系统
+
+作者: small_sunshine
 """
 
 import re
 import json
 import aiohttp
 from typing import Optional, Tuple, List, Dict, Any
-
-from src.common.logger import get_logger
-from src.plugin_system.apis import llm_api
 
 from .rules import (
     ALL_KEYWORDS,
@@ -18,8 +20,6 @@ from .rules import (
     LLM_DETECTION_PROMPT,
     LLM_BATCH_DETECTION_PROMPT,
 )
-
-logger = get_logger("prompt_injection_guard")
 
 
 class CustomLLMClient:
@@ -52,7 +52,6 @@ class CustomLLMClient:
                     data = await resp.json()
                     return data["choices"][0]["message"]["content"]
         except Exception as e:
-            logger.error(f"API error: {e}")
             return None
 
 
@@ -89,7 +88,6 @@ class InjectionDetector:
         if rules.get("enable_preset_rules", True):
             self.keywords = ALL_KEYWORDS.copy()
             self.patterns = PRESET_PATTERNS.copy()
-            logger.info(f"[Injection] 加载 {len(self.keywords)} 关键词, {len(self.patterns)} 正则")
 
         custom_kw = rules.get("custom_keywords", [])
         custom_pt = rules.get("custom_patterns", [])
@@ -119,7 +117,7 @@ class InjectionDetector:
 
         return None
 
-    async def llm_check(self, text: str) -> Tuple[bool, str]:
+    async def llm_check(self, text: str, ctx=None) -> Tuple[bool, str]:
         """单条 LLM 检测"""
         prompt = LLM_DETECTION_PROMPT.format(message=text)
         llm_config = self.config.get("llm", {})
@@ -131,23 +129,20 @@ class InjectionDetector:
 
         if self.custom_llm_client:
             result = await self.custom_llm_client.generate(prompt, temperature, max_tokens)
+        elif ctx:
+            # 使用 MaiBot SDK 的 LLM 能力
+            try:
+                model_name = llm_config.get("main_model_name", "tool_use")
+                result = await ctx.llm.generate(
+                    prompt=prompt,
+                    model_name=model_name,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+            except Exception as e:
+                return False, f"LLM 调用失败: {e}"
         else:
-            model_name = llm_config.get("main_model_name", "replyer")
-            models = llm_api.get_available_models()
-            model_config = models.get(model_name)
-
-            if not model_config:
-                return False, "未找到模型"
-
-            success, content, _, _ = await llm_api.generate_with_model(
-                prompt=prompt,
-                model_config=model_config,
-                request_type="prompt_injection_detection",
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
-            if success:
-                result = content
+            return False, "无可用的 LLM 配置"
 
         if result:
             result = result.strip()
@@ -168,6 +163,7 @@ class InjectionDetector:
         self,
         chat_history: List[Dict[str, str]],
         suspects: List[Dict[str, Any]],
+        ctx=None,
     ) -> List[Dict[str, Any]]:
         """批量 LLM 检测"""
         if not suspects:
@@ -191,23 +187,20 @@ class InjectionDetector:
 
         if self.custom_llm_client:
             result = await self.custom_llm_client.generate(prompt, temperature, max_tokens)
-        else:
-            model_name = llm_config.get("main_model_name", "replyer")
-            models = llm_api.get_available_models()
-            model_config = models.get(model_name)
-
-            if not model_config:
+        elif ctx:
+            # 使用 MaiBot SDK 的 LLM 能力
+            try:
+                model_name = llm_config.get("main_model_name", "tool_use")
+                result = await ctx.llm.generate(
+                    prompt=prompt,
+                    model_name=model_name,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+            except Exception as e:
                 return suspects  # fallback
-
-            success, content, _, _ = await llm_api.generate_with_model(
-                prompt=prompt,
-                model_config=model_config,
-                request_type="prompt_injection_detection",
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
-            if success:
-                result = content
+        else:
+            return suspects
 
         if not result:
             return suspects
@@ -231,7 +224,7 @@ class InjectionDetector:
 
         return confirmed
 
-    async def detect(self, text: str) -> Optional[Tuple[str, str, str]]:
+    async def detect(self, text: str, ctx=None) -> Optional[Tuple[str, str, str, int]]:
         """单条检测，返回 (规则, 类别, 方式, 命中数) 或 None"""
         mode = self.config.get("detection", {}).get("mode", "rule_then_llm")
 
@@ -244,13 +237,13 @@ class InjectionDetector:
         elif mode == "rule_then_llm":
             result = self.rule_check(text)
             if result:
-                is_injection, reason = await self.llm_check(text)
+                is_injection, reason = await self.llm_check(text, ctx)
                 if is_injection:
                     return (result[0], result[1], "规则+LLM", result[2])
             return None
 
         elif mode == "llm_only":
-            is_injection, reason = await self.llm_check(text)
+            is_injection, reason = await self.llm_check(text, ctx)
             if is_injection:
                 return ("LLM", reason, "LLM", 1)
             return None

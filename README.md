@@ -1,8 +1,14 @@
-# prompt_injection_guard v1.0.1
+# prompt_injection_guard v1.1.0
 
 防御提示词注入攻击的 MaiBot 安全插件。
 
-**作者**: heitiehu
+## 项目来源
+
+本插件基于 [heitiehu-beep/prompt_injection_guard](https://github.com/heitiehu-beep/prompt_injection_guard) 项目，适配新版 MaiBot 插件系统（manifest_version 2）。
+
+- **原项目作者**: [heitiehu-beep](https://github.com/heitiehu-beep)
+- **适配版本作者**: [small_sunshine](https://github.com/MCYXG233)
+- **新仓库地址**: [MCYXG233/prompt_injection_guard_new](https://github.com/MCYXG233/prompt_injection_guard_new)
 
 ## 功能特性
 
@@ -81,7 +87,7 @@ custom_patterns = ["(?i)my\\s+pattern"]
 [llm]
 # 使用主程序模型
 source = "main"
-main_model_name = "replyer"
+main_model_name = "tool_use"
 
 # 或使用自定义 API
 # source = "custom"
@@ -121,8 +127,8 @@ main_model_name = "replyer"
 启用 `enable_logging = true` 后，检测结果会记录到日志：
 
 ```
-[注入检测] 已删除消息 | 用户: 123456 | 类别: 越狱尝试 | 方式: 规则+LLM | 规则: jailbreak
-[注入检测] 上下文警告 | 用户: 路人甲 (123456) | 类别: 指令覆盖 | 方式: 规则检测 | 规则: 忽略之前
+[Injection] warn_context | 用户: 123456 | 类别: 越狱尝试 | 方式: 规则+LLM | 规则: jailbreak
+[Injection] delete | 用户: 路人甲 (123456) | 类别: 指令覆盖 | 方式: 规则检测 | 规则: 忽略之前
 ```
 
 ## 注意事项
@@ -138,9 +144,23 @@ main_model_name = "replyer"
 
 3. **上下文长度**：默认跟随主程序的 `chat.max_context_size` 设置
 
-## 1.0.1更新：
-修复 warn_context 模式下注入检测仅在 bot 回复时触发的问题，现在每条消息到达时即执行检测并缓存结果
+## 更新日志
+
+### v1.1.0
+- 适配新版 MaiBot 插件系统（manifest_version 2）
+- 使用 `maibot_sdk` 替代旧版 `src.plugin_system`
+- 使用 `PluginConfigBase` 声明强类型配置
+- 使用 `@EventHandler` 装饰器替代类继承方式
+- 实现标准生命周期方法 `on_load()`, `on_unload()`, `on_config_update()`
+
+### v1.0.1
+- 修复 warn_context 模式下注入检测仅在 bot 回复时触发的问题
+- 现在每条消息到达时即执行检测并缓存结果
 
 ## 许可证
 
 MIT
+
+## 致谢
+
+感谢 [heitiehu-beep](https://github.com/heitiehu-beep) 提供的原始插件实现。

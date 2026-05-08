@@ -1,24 +1,29 @@
 {
-  "manifest_version": 1,
+  "manifest_version": 2,
+  "id": "small_sunshine.prompt-injection-guard",
+  "version": "1.1.0",
   "name": "提示词注入防护插件",
-  "version": "1.0.1",
-  "description": "防御提示词注入攻击，支持规则检测和 LLM 检测",
+  "description": "防御提示词注入攻击，支持规则检测和 LLM 检测。基于 heitiehu-beep 的原项目适配新版 MaiBot。",
   "author": {
-    "name": "heitiehu-beep",
-    "url": "https://github.com/heitiehu-beep"
+    "name": "small_sunshine",
+    "url": "https://github.com/MCYXG233"
   },
   "license": "MIT",
-  "host_application": {
-    "min_version": "0.11.0"
+  "urls": {
+    "repository": "https://github.com/MCYXG233/prompt_injection_guard_new",
+    "homepage": "https://github.com/MCYXG233/prompt_injection_guard_new"
   },
-  "repository_url": "https://github.com/heitiehu-beep/prompt_injection_guard",
-  "keywords": [
-    "安全",
-    "提示词注入",
-    "防护",
-    "越狱防御"
-  ],
-  "categories": [
-    "工具"
-  ]
+  "host_application": {
+    "min_version": "1.0.0",
+    "max_version": "1.99.99"
+  },
+  "sdk": {
+    "min_version": "1.0.0",
+    "max_version": "2.99.99"
+  },
+  "dependencies": [],
+  "capabilities": ["send_message"],
+  "i18n": {
+    "default_locale": "zh-CN"
+  }
 }
